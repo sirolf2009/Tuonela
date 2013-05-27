@@ -1,0 +1,128 @@
+Weapons
+	Logic
+		Basic Item
+		Better Item
+		Good Item
+		Special Item
+		Special Item
+		Special Item
+		Ultra Item
+	Sword
+		Wooden Sword
+		Iron Sword
+		Steel Sword
+		Steel Short Sword (+ attack speed)
+		Steel Long Sword (+ attack damage)
+		Pommeled Steel Sword (+ defence)
+		Gram
+	Axe
+		Stone Hand Axe
+		Iron Hand Axe
+		Steel Long Axe
+		Steel Double Edged Axe (+ attack speed, + attack damage)
+		Steel Halberd (+ attack range)
+		Throwing Steel Axe (+ attack range)
+		Olaf's Axe
+	Spear
+		Iron Spear
+		Steel Spear
+		Javelin
+		War Spear (+ attack damage)
+		Hooked Spear (ignores shield)
+		Light Javelin (+ attack range)
+		Valkyrja
+	Bow
+		Long Bow
+		Short Bow (rare)
+		Recurve Bow (rare)
+	Arrows
+		Barbed Tip Arrow (normal)
+		Bodkin Tip Arrow (AP)
+		Leaf Tip Arrow (+ damage to unarmored)
+		
+Armor
+	Shield
+		Wooden Round Shield
+		Iron Round Shield
+		Kite Shield (rare)
+	Helmet
+		Iron Helmet
+		Horned Iron Helmet
+		Steel Helmet
+		Horned Steel Helmet
+	Chest
+		Cloth Chestplate
+		Leather Chestplate
+		Lamellar Chestplate
+		Mail Shirt
+	Leggings
+		Cloth leggings
+		Leather Leggings
+		Lamellar Leggings
+		Mail Leggings
+	Horse
+		Cloth Armor
+		Leather Armor
+		Lamellar Armor
+		Mail Armor
+		
+Items
+	Food
+		Beef
+		Mutton
+		Lamb
+		Goat
+		Pork
+		Horse Meat
+		Fish
+		Whale (rare)
+		Carrot
+		Cabbage
+		Apples
+		Eggs
+		
+God Content (devs and donators only)
+	Weapons
+		Mjolnir (Axe)
+		Gungnir (Spear)
+		Sleipnir (Horse)
+
+Mobs
+	Friendly
+		Cow
+		Sheep
+		Goat
+		Pig
+		Rabbit
+		Raven
+		Hired Merchant
+		Horse
+	Neutral
+		Moose
+		Deer
+		Wild Horse
+		Merchant
+	Hostile
+		Draugr
+		Wolf
+		Bandit
+		Giant (rare)
+		
+Buildings
+	Stake Wall
+	Guard Tower
+	Flag
+	Barracks
+	Small Building
+	Medium Building
+	Large Building
+	Blacksmith
+	Dock
+
+Ideas
+	Smithing, Fletching & Crafting
+		This will allow you to create your own weapons and armor. The materials needed can be found and bought in the cities.
+	Dying and Painting
+		This will allow you to dye Cloth, Leather and Lamella armor. You can also paint your shield and flags and thus create your own sigil.	
+	Fishing
+		Wielding a spear will allow you to fish.

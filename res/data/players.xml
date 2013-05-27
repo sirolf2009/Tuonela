@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!-- the registered players on this server -->
+<players> <!-- root element -->
+	<player name="sander_de_ronde"> <!-- element -->
+		<posX> 500 </posX>
+		<posY> 500 </posY>
+	</player>
+</players> 

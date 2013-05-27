@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<animations>
+	<file>res/sprites/mobs/Character.png</file>
+	<default>
+		<speed>50</speed>
+		<originX>0</originX>
+		<originY>0</originY>
+		<width>400</width>
+		<height>400</height>
+		<spritesPerRow>1</spritesPerRow>
+		<rows>1</rows>
+	</default>
+	<running>
+		<speed>50</speed>
+		<width>400</width>
+		<height>400</height>
+		<spritesPerRow>10</spritesPerRow>
+		<rows>1</rows>
+		<running direction="NORTH">
+			<originX>0</originX>
+			<originY>1200</originY>
+		</running>
+		<running direction="EAST">
+			<originX>0</originX>
+			<originY>400</originY>
+		</running>
+		<running direction="SOUTH">
+			<originX>0</originX>
+			<originY>800</originY>
+		</running>
+		<running direction="WEST">
+			<originX>0</originX>
+			<originY>0</originY>
+		</running>	
+	</running>
+</animations>
