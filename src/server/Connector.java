@@ -21,7 +21,7 @@ public class Connector implements Runnable {
 				Client client = new Client(serverSocket.accept());
 				if(client != null) {
 					System.out.println("Connecting: "+client.socket.getRemoteSocketAddress());
-					client.username = client.in.readUTF();
+					client.username = client.in.readLine();
 					if(client.username == null || client.username == "") {
 						System.err.println("lost connection with "+client.socket.getRemoteSocketAddress());
 						client.socket.close();

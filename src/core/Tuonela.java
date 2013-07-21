@@ -3,24 +3,32 @@ package core;
 import handler.KeyHandler;
 import handler.MouseHandler;
 import helper.ClientServerCommunicator;
+import helper.Logger;
 
 import java.awt.Color;
 import java.awt.DisplayMode;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.util.Random;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
 import menu.MenuConnect;
-import entity.EntityPlayer;
+import menu.MenuLogin;
 import render.RenderManager;
 import screen.ScreenManager;
 import world.World;
+import entity.EntityPlayer;
 
 public class Tuonela implements Runnable {
 
@@ -31,29 +39,52 @@ public class Tuonela implements Runnable {
 	public World world;
 	public boolean fullscreen;
 	public boolean shouldCenterMouse;
-	public int playerID = -1;
+	private int playerID = -1;
 	public JFrame frame;
 	public String appName;
 	public String ipToConnect;
 	public String portToConnect;
+	public String username;
 	public static GameState gameState;
+	public static int instanceID = new Random().nextInt(255);
 
 	public Socket serverSocket = null;
-	public ObjectOutputStream serverWriter = null;
-	public ObjectInputStream serverReader = null;
+	public PrintWriter serverWriter = null;
+	public BufferedReader serverReader = null;
+	public ClientServerCommunicator communicator;
 
 	public static Tuonela instance;
 
 	public Tuonela(boolean fullscreen) {
 		this.appName = "Tuonela";
 		this.fullscreen = fullscreen;
+		instance = this;
 	}
 
+	@Override
 	public void run() {
-		init(appName, fullscreen);
+		gameState = GameState.CONNECTING;
 		try {
-			menuLoop();
-			gameLoop();
+			while(true) {
+				switch(gameState) {
+				case CONNECTING:
+					initScreen(appName, fullscreen);
+					//TODO add loading screen
+					init();
+				case MENU_LOGIN:
+					MenuLogin login = new MenuLogin(frame);
+					username = login.txtUsername.getText();
+					gameState = GameState.MENU_CONNECT;
+				case MENU_CONNECT:
+					MenuConnect menu = new MenuConnect(frame);
+					ipToConnect = menu.ip.getText();
+					portToConnect = menu.port.getText();
+					connect();
+				default:
+					gameLoop();
+					break;
+				}
+			}
 		} catch(Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -61,20 +92,25 @@ public class Tuonela implements Runnable {
 		}
 	}
 
-	private void init(String appName, boolean fullscreen) {
-		gameState = GameState.INITIALIZING;
-		instance = this;
-		screenManager = new ScreenManager();
-		renderManager = new RenderManager();
-		renderManager.init();
+	private void init() {
 		keyHandler = new KeyHandler(this);
 		mouseHandler = new MouseHandler();
+		frame.addKeyListener(keyHandler);
+		frame.addMouseListener(mouseHandler);
+		frame.addMouseMotionListener(mouseHandler);
+		frame.addMouseWheelListener(mouseHandler);
+		renderManager = new RenderManager();
+		renderManager.init();
+	}
+	
+	private void initScreen(String appName, boolean fullscreen) {
+		screenManager = new ScreenManager();
 		if(fullscreen) {
 			DisplayMode mode = screenManager.getFirstSupportedMode(modes);
 			frame = screenManager.setFullscreen(mode);
 		} else
 			frame = new JFrame();
-		frame.setTitle(appName);
+		frame.setTitle(appName + ":" + instanceID);
 		frame.setSize(800, 600);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setIgnoreRepaint(true);
@@ -82,25 +118,17 @@ public class Tuonela implements Runnable {
 		frame.setForeground(Color.WHITE);
 		frame.setFont(new Font("Arial", Font.PLAIN, 20));
 		frame.setFocusTraversalKeysEnabled(false);
-		frame.addKeyListener(keyHandler);
-		frame.addMouseListener(mouseHandler);
-		frame.addMouseMotionListener(mouseHandler);
-		frame.addMouseWheelListener(mouseHandler);
 		frame.setVisible(true);
 		frame.createBufferStrategy(2);
 		shouldCenterMouse = false;
-	}
-
-	public void menuLoop() {
-		while(true) {
-			//MenuLogin login = new MenuLogin(frame);
-			//player.username = login.txtUsername.getText();
-			gameState = GameState.MENU_CONNECT;
-			MenuConnect menu = new MenuConnect(frame);
-			ipToConnect = menu.ip.getText();
-			portToConnect = menu.port.getText();
-			if(connect())
-				break;
+		Graphics2D g = screenManager.getGraphics();
+		try {
+			BufferedImage loading = ImageIO.read(new File(getClass().getClassLoader().getResource("sprites/menu/loading.png").toURI()));
+			g.drawImage(loading, 0, 0, 800, 600, null);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -108,12 +136,12 @@ public class Tuonela implements Runnable {
 		try {
 			gameState = GameState.CONNECTING;
 			serverSocket = new Socket(ipToConnect, Integer.valueOf(portToConnect));
-			serverWriter = new ObjectOutputStream(serverSocket.getOutputStream());
-			serverReader = new ObjectInputStream(serverSocket.getInputStream());
-			ClientServerCommunicator rcv = new ClientServerCommunicator(serverReader, serverWriter, serverSocket, this, "sirolf2009");
-			serverWriter.writeUTF("sirolf2009");
+			serverWriter = new PrintWriter(serverSocket.getOutputStream());
+			serverReader = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
+			communicator = new ClientServerCommunicator(serverReader, serverWriter, serverSocket, this);
+			serverWriter.println(username);
 			serverWriter.flush();
-			Thread rcvThread = new Thread(rcv, "ClientServerCommunicator");
+			Thread rcvThread = new Thread(communicator, "ClientServerCommunicator");
 			rcvThread.start();
 			while(gameState == GameState.CONNECTING){}
 			return true;
@@ -156,8 +184,8 @@ public class Tuonela implements Runnable {
 
 	private void draw() {
 		Graphics2D g = screenManager.getGraphics();
-		int offsetX = (int) (getLocalPlayer().getPosX()-frame.getWidth()/2);
-		int offsetY = (int) (getLocalPlayer().getPosY()-frame.getHeight()/2);
+		int offsetX = (int) (getLocalPlayer().getPosX()+getLocalPlayer().getRenderer().sprite.getWidth()/2-frame.getWidth()/2);
+		int offsetY = (int) (getLocalPlayer().getPosY()+getLocalPlayer().getRenderer().sprite.getHeight()/2-frame.getHeight()/2);
 		g.translate(-offsetX, -offsetY);
 		renderManager.renderBackground(g, world.tiles, world.levelWidth, world.levelHeight, offsetX, offsetY, frame.getWidth(), frame.getHeight());
 		world.renderEntities(g);
@@ -179,11 +207,8 @@ public class Tuonela implements Runnable {
 			fullscreen = args[0] == "true" ? true : false;
 		}
 		Thread tuonela = new Thread(new Tuonela(fullscreen), "Tuonela");
-		Thread tuonelaServer = new Thread(new TuonelaServer(999), "Tuonela Server");
 		tuonela.setPriority(1);
-		tuonelaServer.setPriority(2);
 		tuonela.start();
-		tuonelaServer.start();
 	}
 
 	public static final DisplayMode[] modes = {
@@ -194,4 +219,13 @@ public class Tuonela implements Runnable {
 		new DisplayMode(640, 480, 24, 0),
 		new DisplayMode(640, 480, 16, 0),
 	};
+
+	public int getPlayerID() {
+		return playerID;
+	}
+
+	public void setPlayerID(int playerID) {
+		this.playerID = playerID;
+		Logger.log("player id set to " + playerID);
+	}
 }

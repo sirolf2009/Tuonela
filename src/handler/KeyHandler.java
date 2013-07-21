@@ -3,6 +3,7 @@ package handler;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import core.Tuonela;
+import entity.Entity;
 import entity.EntityPlayer;
 
 public class KeyHandler implements KeyListener {
@@ -16,21 +17,23 @@ public class KeyHandler implements KeyListener {
 	@Override
 	public void keyPressed(KeyEvent e) {
 		int keyCode = e.getKeyCode();
+		Entity player = client.world.livingEntities.get(client.getPlayerID());
+		float speed = ((EntityPlayer)client.world.livingEntities.get(client.getPlayerID())).getSpeed();
 		switch(keyCode) {
 		case KeyEvent.VK_ESCAPE: 
 			Tuonela.stop();
 			break;
 		case KeyEvent.VK_D:
-			client.world.livingEntities.get(client.playerID).setVelX(((EntityPlayer)client.world.livingEntities.get(client.playerID)).getSpeed());
+			player.setVelX(speed);
 			break;
 		case KeyEvent.VK_A:
-			client.world.livingEntities.get(client.playerID).setVelX(-((EntityPlayer)client.world.livingEntities.get(client.playerID)).getSpeed());
+			player.setVelX(-speed);
 			break;
 		case KeyEvent.VK_W:
-			client.world.livingEntities.get(client.playerID).setVelY(-((EntityPlayer)client.world.livingEntities.get(client.playerID)).getSpeed());
+			player.setVelY(-speed);
 			break;
 		case KeyEvent.VK_S:
-			client.world.livingEntities.get(client.playerID).setVelY(((EntityPlayer)client.world.livingEntities.get(client.playerID)).getSpeed());
+			player.setVelY(speed);
 			break;
 		}
 	}
@@ -40,16 +43,16 @@ public class KeyHandler implements KeyListener {
 		int keyCode = e.getKeyCode();
 		switch(keyCode) {
 		case KeyEvent.VK_D:
-			client.world.livingEntities.get(client.playerID).setVelX(0);
+			client.world.livingEntities.get(client.getPlayerID()).setVelX(0);
 			break;
 		case KeyEvent.VK_A:
-			client.world.livingEntities.get(client.playerID).setVelX(0);
+			client.world.livingEntities.get(client.getPlayerID()).setVelX(0);
 			break;
 		case KeyEvent.VK_W:
-			client.world.livingEntities.get(client.playerID).setVelY(0);
+			client.world.livingEntities.get(client.getPlayerID()).setVelY(0);
 			break;
 		case KeyEvent.VK_S:
-			client.world.livingEntities.get(client.playerID).setVelY(0);
+			client.world.livingEntities.get(client.getPlayerID()).setVelY(0);
 			break;
 		}
 	}

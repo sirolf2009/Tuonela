@@ -16,10 +16,12 @@ public class SpriteAnimated extends Sprite {
 		image = anim.getImage();
 	}
 	
+	@Override
 	public int getWidth() {
 		return anim.getImage().getWidth(null);
 	}
 	
+	@Override
 	public int getHeight() {
 		return anim.getImage().getHeight(null);
 	}

@@ -1,5 +1,6 @@
 package core;
 
+import helper.Logger;
 import helper.ParserXML;
 import helper.Reference;
 
@@ -12,7 +13,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Map.Entry;
 
 import javax.swing.DefaultListModel;
@@ -22,6 +25,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -29,8 +33,10 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import packet.PacketEntityCreation;
 import packet.PacketWorld;
 
+import entity.Entity;
 import entity.EntityPlayer;
 
 import render.RenderEntity;
@@ -38,6 +44,7 @@ import server.Client;
 import server.Connector;
 import server.ServerClientCommunicator;
 import world.World;
+import world.area.AreaSpawn;
 
 public class TuonelaServer implements Runnable{
 
@@ -55,8 +62,11 @@ public class TuonelaServer implements Runnable{
 	public World world;
 	public ServerClientCommunicator communicator;
 	public Connector connector;
+	
+	public static TuonelaServer instance;
 
 	public TuonelaServer(int port) {
+		instance = this;
 		ServerSocket server = null;
 		try {
 			server = new ServerSocket(port);
@@ -67,11 +77,13 @@ public class TuonelaServer implements Runnable{
 		//redirectSystemStreams();
 		initScreen();
 		world = new World("map/testMap.png");
+		world.isRemote = true;
+		world.setWorldAreas("map/testMap.txt");
 		clients = new HashMap<String, Client>();
-		communicator = new ServerClientCommunicator(clients);
+		communicator = new ServerClientCommunicator(this);
 		connector = new Connector(this, server);
-		new Thread(new Connector(this, server), "Connector").start();
-		new Thread(new ServerClientCommunicator(clients)).start();
+		new Thread(connector, "Connector").start();
+		new Thread(communicator, "Server Client Communicator").start();
 	}
 	
 	@Override
@@ -82,6 +94,11 @@ public class TuonelaServer implements Runnable{
 			long deltaTime = System.currentTimeMillis() - lastTime;
 			lastTime += deltaTime;
 			world.update(deltaTime);
+			try {
+				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -103,6 +120,9 @@ public class TuonelaServer implements Runnable{
 		txtIP = new JTextArea();
 		txtIP.setBounds(224+48, 24+12, 200, 16);
 		txtIP.setEditable(false);
+		txtPing = new JTextArea();
+		txtPing.setBounds(224+48, 24+12+12, 200, 16);
+		txtPing.setEditable(false);
 		kick = new JButton("kick");
 		kick.setBounds(224+48, 24+26+12, 64, 64);
 		ban = new JButton("ban");
@@ -111,13 +131,14 @@ public class TuonelaServer implements Runnable{
 		txtLog.setBounds(232,600-200-48,553-16,200);
 		txtLog.setEditable(false);
 		txtLog.setWrapStyleWord(true);
-		JScrollPane scroll = new JScrollPane(txtLog, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		JScrollPane scroll = new JScrollPane(txtLog, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 		scroll.setPreferredSize(new Dimension(16, 200));
 		frame.add(clientsList);
 		frame.add(lblName);
 		frame.add(txtName);
 		frame.add(lblIP);
 		frame.add(txtIP);
+		frame.add(txtPing);
 		frame.add(kick);
 		frame.add(ban);
 		frame.add(scroll);
@@ -127,6 +148,7 @@ public class TuonelaServer implements Runnable{
 
 	private void updateTextArea(final String text) {
 		SwingUtilities.invokeLater(new Runnable() {
+			@Override
 			public void run() {
 				txtLog.append(text);
 			}
@@ -157,11 +179,13 @@ public class TuonelaServer implements Runnable{
 	}
 
 	private class ClientListListener implements ListSelectionListener {
+		@Override
 		public void valueChanged(ListSelectionEvent event) {
 			if (!event.getValueIsAdjusting()) {
 				String selection = clientsList.getSelectedValue().toString();
 				Client client = clients.get(selection);
 				txtName.setText(client.username);
+				txtPing.setText(String.valueOf(client.ping));
 				txtIP.setText(client.socket.getRemoteSocketAddress().toString());
 			}
 		}
@@ -175,22 +199,25 @@ public class TuonelaServer implements Runnable{
 			e.printStackTrace();
 		}
 		if(location == null) {
-			System.out.println("creating new players file");
+			Logger.log("creating new player file for "+client.username);
 			Document doc = ParserXML.createDocument(location);
 			doc.appendChild(doc.createElement("players"));
 		}
 		Document doc = ParserXML.parse(Reference.RESOURCE_PLAYERS_DATA);
 		NodeList list = ParserXML.getNodeListByName(doc, "player");
 		if(ParserXML.retrieveValueFromNodeWithAttribute(list, "name", client.username) == null) {
-			System.out.println("creating player data");
 			Element rootElement = doc.getDocumentElement();
 			Element player = doc.createElement("player");
 			player.setAttribute("name", client.username);
 			Element posX = doc.createElement("posX");
-			posX.appendChild(doc.createTextNode("0"));
+			int registerID = Entity.registeredEntitiesClassToID.get(EntityPlayer.class);
+			List<AreaSpawn> listAreaSpawn = world.spawnAreas.get(registerID);
+			int index = new Random().nextInt(listAreaSpawn.size());
+			AreaSpawn spawn = listAreaSpawn.get(index);
+			posX.appendChild(doc.createTextNode(spawn.getRandomX()+""));
 			player.appendChild(posX);
 			Element posY = doc.createElement("posY");
-			posY.appendChild(doc.createTextNode("0"));
+			posY.appendChild(doc.createTextNode(spawn.getRandomX()+""));
 			player.appendChild(posY);
 			rootElement.appendChild(player);
 			doc.getDocumentElement().appendChild(player);
@@ -200,11 +227,26 @@ public class TuonelaServer implements Runnable{
 		int posX = Integer.parseInt(ParserXML.retrieveValueFromNodeName(playerlist, "posX"));
 		int posY = Integer.parseInt(ParserXML.retrieveValueFromNodeName(playerlist, "posY"));
 		EntityPlayer player = new EntityPlayer(world, posX, posY);
+		player.username = client.username;
 		player.setRenderer(new RenderEntity(player));
 		world.addEntityToWorld(player);
+		Logger.log("Player "+player+" joined with ID "+player.getEntityID()+" at "+player.getPosX()+", "+player.getPosY());
 		client.player = player;
 		clients.put(client.username, client);
-		new PacketWorld(world, player.getEntityID()).send(client.out);
+		client.sendPacket(new PacketWorld(world, player.getEntityID()));
+		communicator.sendPacket(new PacketEntityCreation(client.player));
+		Iterator<Entry<String, Client>> itr2 = clients.entrySet().iterator();
+		DefaultListModel<String> model = new DefaultListModel<String>();
+		while(itr2.hasNext()) {
+			Client client2 = itr2.next().getValue();
+			model.addElement(client2.username);
+			clientsList.setModel(model);
+			frame.repaint();
+		}
+	}
+	
+	public void removeClient(Client client) {
+		clients.remove(client.username);
 		Iterator<Entry<String, Client>> itr = clients.entrySet().iterator();
 		DefaultListModel<String> model = new DefaultListModel<String>();
 		while(itr.hasNext()) {

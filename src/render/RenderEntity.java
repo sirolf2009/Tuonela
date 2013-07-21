@@ -1,12 +1,14 @@
 package render;
 
+import helper.Logger;
 import helper.ParserXML;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
+import java.net.URISyntaxException;
+
 import javax.imageio.ImageIO;
 
 import org.w3c.dom.DOMException;
@@ -20,14 +22,14 @@ import render.sprite.Sprite;
 import render.sprite.SpriteAnimated;
 
 import entity.Entity;
+import entity.EntityPlayer;
 
-public class RenderEntity implements Serializable {
+public class RenderEntity {
 
-	private static final long serialVersionUID = 5054164067332249348L;
 	public Entity entity;
-	public transient Sprite sprite;
-	public transient Sprite spriteWalkingNorth, spriteWalkingSouth, spriteWalkingWest, spriteWalkingEast;
-	public transient Sprite spriteDefault;
+	public Sprite sprite;
+	public Sprite spriteWalkingNorth, spriteWalkingSouth, spriteWalkingWest, spriteWalkingEast;
+	public Sprite spriteDefault;
 	public String img;
 
 	public RenderEntity(Entity entity) {
@@ -38,13 +40,14 @@ public class RenderEntity implements Serializable {
 		} else {
 			spriteDefault = new Sprite(entity.getTexture());
 		}
+		sprite = spriteDefault;
 	}
 
 	public void draw(Graphics2D g) {
-		System.out.println(sprite+ " "+entity);
 		sprite.x = (int) entity.getPosX();
 		sprite.y = (int) entity.getPosY();
 		sprite.draw(g);
+		g.drawString(entity.getEntityID()+(entity instanceof EntityPlayer ? ":"+((EntityPlayer)entity).username:""), sprite.x, sprite.y);
 	}
 
 	public void update(long deltaTime) {
@@ -65,11 +68,8 @@ public class RenderEntity implements Serializable {
 			Document doc = ParserXML.parse(path);
 			NodeList nodesFile = ParserXML.getNodeListByName(doc, "file");
 			NodeList nodesDefault = ParserXML.getNodeListByName(doc, "default");
-			for(int i = 0; i < doc.getDocumentElement().getChildNodes().getLength(); i ++)
-			if(doc.getDocumentElement().getChildNodes().item(i).getNodeName() == "default")
-				System.out.println(doc.getDocumentElement().getChildNodes().item(i).getChildNodes().item(0).getTextContent());
 			NodeList nodesRunning = ParserXML.getNodeListByName(doc, "running");
-			BufferedImage spriteSheet = ImageIO.read(new File(ParserXML.retrieveValueFromNodeName(nodesFile, "file")));
+			BufferedImage spriteSheet = ImageIO.read(new File(getClass().getResource(ParserXML.retrieveValueFromNodeName(nodesFile, "file")).toURI()));
 
 			Animation defaultAnim = createNonDirectionalAnimation(nodesDefault, spriteSheet);
 			spriteDefault = new SpriteAnimated(defaultAnim);
@@ -91,7 +91,7 @@ public class RenderEntity implements Serializable {
 				spriteWalkingWest = new SpriteAnimated(anim);
 				break;
 			}
-		} catch (DOMException | IOException e) {
+		} catch (DOMException | IOException | URISyntaxException e) {
 			e.printStackTrace();
 		}
 	}

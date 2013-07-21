@@ -1,37 +1,38 @@
 package helper;
 
+import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import packet.Packet;
-import packet.PacketPing;
-import packet.PacketWorld;
-
+import core.GameState;
 import core.Tuonela;
 
 public class ClientServerCommunicator implements Runnable {
 
-	public ObjectInputStream in;
-	public ObjectOutputStream out;
+	public BufferedReader in;
+	public PrintWriter out;
 	public Socket serverSocket;
 	public Tuonela client;
+	public long ping;
+	private List<Packet> packetqueue = new ArrayList<Packet>();
 	private List<Packet> packets = new ArrayList<Packet>();
 
-	public ClientServerCommunicator(ObjectInputStream in, ObjectOutputStream out, Socket serverSocket, Tuonela client, String userName) {
-		this.in = in;
-		this.out = out;
+	public ClientServerCommunicator(BufferedReader serverReader, PrintWriter serverWriter, Socket serverSocket, Tuonela client) {
+		this.in = serverReader;
+		this.out = serverWriter;
 		this.serverSocket = serverSocket;
 		this.client = client;
 	}
 
-	public void sendPacket(Packet packet) {
-		packets.add(packet);
+	public synchronized void sendPacket(Packet packet) {
+		packetqueue.add(packet);
 	}
 
 	@Override
@@ -49,7 +50,7 @@ public class ClientServerCommunicator implements Runnable {
 			pingCounter += deltaTime;
 			if(pingCounter > 1000) {
 				pingCounter = 0;
-				sendPacket(new PacketPing());
+				//sendPacket(new PacketPing());
 			}
 			try {
 				Thread.sleep(20);
@@ -62,28 +63,35 @@ public class ClientServerCommunicator implements Runnable {
 	private class Sender implements Runnable {
 
 		@Override
-		public void run() {
+		public synchronized void run() {
 			while(true) {
-				Iterator<Packet> itr = packets.iterator();
-				while(itr.hasNext()) {
-					Packet packet = itr.next();
-					packet.send(out);
-				}
-				packets.clear();
 				try {
+					sendPackets();
 					Thread.sleep(20);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
 		}
+		
+		private synchronized void sendPackets() {
+			packets = new ArrayList<Packet>(packetqueue);
+			packetqueue.clear();
+			Iterator<Packet> itr = packets.iterator();
+			while(itr.hasNext()) {
+				Packet packet = itr.next();
+				Logger.log(LogType.LOG_PACKET_SENDING, "Client send "+ packet);
+				packet.send(out);
+			}
+			packets.clear();
+		}
 
 	}
 
 	private class Receiver implements Runnable {
-		
+
 		Tuonela tuonela;
-		
+
 		private Receiver(Tuonela tuonela) {
 			this.tuonela = tuonela;
 		}
@@ -92,22 +100,20 @@ public class ClientServerCommunicator implements Runnable {
 		public void run() {
 			while(true) {
 				try {
-					String packetID = in.readUTF();
-					System.out.println("received "+packetID+" on client");
-					if(packetID.equals("@ping")) {
-						PacketPing ping = (PacketPing) in.readObject();
-						ping.receivedOnClient(tuonela);
-						System.out.println("ping: "+(ping.ping/1000));
-					} else if(packetID.equals("@world")) {
-						PacketWorld packet = (PacketWorld) in.readObject();
-						packet.receivedOnClient(Tuonela.instance);
-						packet.send(out);
+					String packetID = in.readLine();
+					if(packetID.isEmpty() || packetID.contains(" ") || Packet.PacketsIDToClass.get(packetID) == null) {
+						Logger.logErr(LogType.LOG_PACKET, "weird packet ID: "+packetID);
 					} else {
-						Packet packet = (Packet) in.readObject();
+						Packet packet = (Packet) Packet.PacketsIDToClass.get(packetID).newInstance();
+						Logger.log(LogType.LOG_PACKET_RECEIVING, "Client received "+ packet);
+						packet.receive(in);
+						ping = packet.ping;
 						packet.receivedOnClient(tuonela);
+						Thread.sleep(20);
 					}
-					Thread.sleep(20);
-				} catch (IOException | ClassNotFoundException | InterruptedException e) {
+				} catch (SocketException e) {
+					Tuonela.gameState = GameState.MENU_CONNECT;
+				} catch (IOException | InterruptedException | InstantiationException | IllegalAccessException e) {
 					if(!(e instanceof EOFException))
 						e.printStackTrace();
 				}

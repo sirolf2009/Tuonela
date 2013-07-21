@@ -28,19 +28,20 @@ public class RenderManager {
 	public List<SpriteAnimated> armor = new ArrayList<SpriteAnimated>();
 	public Sprite dirt, stone, water, grass;
 	public Sprite background;
+	public final String tileSheet = "/sprites/world/tilemap.png";
 	private static RenderManager instance;
 
 	public void init() {
 		dirt = new Sprite();
-		dirt.setImage("/tilesheet.png", 0, 0, 32, 32);
+		dirt.setImage(tileSheet, 0, 0, 32, 32);
 		stone = new Sprite();
-		stone.setImage("/tilesheet.png", 32, 0, 32, 32);
+		stone.setImage(tileSheet, 32, 0, 32, 32);
 		water = new Sprite();
-		water.setImage("/tilesheet.png", 64, 0, 32, 32);
+		water.setImage(tileSheet, 64, 0, 32, 32);
 		grass = new Sprite();
-		grass.setImage("/tilesheet.png", 96, 0, 32, 32);
+		grass.setImage(tileSheet, 96, 0, 32, 32);
 		background = new Sprite();
-		background.setImage("/background.jpg");
+		background.setImage("/sprites/world/background.jpg");
 	}
 
 	public Animation createAnimation(int speed, String... strings) {
@@ -102,7 +103,6 @@ public class RenderManager {
 	}
 
 	public Animation createAnimation(NodeList nodes, String attribute, BufferedImage spriteSheet, int speed) {
-		System.out.println(attribute);
 		int width = Integer.parseInt(ParserXML.retrieveValueFromNodeName(nodes, "width"));
 		int height = Integer.parseInt(ParserXML.retrieveValueFromNodeName(nodes, "height"));
 		int spritesPerRow = Integer.parseInt(ParserXML.retrieveValueFromNodeName(nodes, "spritesPerRow"));
@@ -125,10 +125,10 @@ public class RenderManager {
 		int startY = (int) (offsetY / World.TILE_HEIGHT); // the amount of tiles that are above of the screen
 		int endX = (int) ((offsetX + screenX) / World.TILE_WIDTH + 1); // the amount of tiles that are in the screen + 1
 		int endY = (int) ((offsetY + screenY) / World.TILE_HEIGHT + 1); // the amount of tiles that are in the screen + 1
-		if(startX < 0)
-			startX = 0;
-		if(startY < 0)
-			startY = 0;
+		if(startX < 1)
+			startX = 1;
+		if(startY < 1)
+			startY = 1;
 		if(endX > width)
 			endX = width;
 		if(endY > height)

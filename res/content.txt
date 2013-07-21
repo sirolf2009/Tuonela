@@ -101,6 +101,7 @@ Mobs
 		Moose
 		Deer
 		Wild Horse
+		Boar
 		Merchant
 	Hostile
 		Draugr

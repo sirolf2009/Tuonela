@@ -5,7 +5,6 @@ import world.World;
 
 public class EntityLiving extends Entity {
 
-	private static final long serialVersionUID = -1440973314306207171L;
 	protected int health;
 	protected int damage;
 	protected float speed;
@@ -16,8 +15,6 @@ public class EntityLiving extends Entity {
 		health = 100;
 		speed = 4;
 	}
-
-	
 
 	public int getHealth() {
 		return health;
